@@ -1,0 +1,32 @@
+
+-- 1. Where in the world are most users from? 
+SELECT location, COUNT(location) AS location_frequency
+FROM `bigquery-public-data.stackoverflow.users` 
+GROUP BY location 
+ORDER BY COUNT(location) DESC
+LIMIT 15;
+
+/*So India is a big contributor, 
+though it is really hard to tell 
+*/
+
+
+--2. Where are most popular users from? 
+SELECT display_name, reputation, location
+FROM `bigquery-public-data.stackoverflow.users`
+ORDER BY reputation DESC
+LIMIT 15;  
+
+/* Varied, but mostly USA 
+*/
+
+
+--3. When did users join StackOver Flow?
+SELECT EXTRACT(YEAR FROM creation_date) AS year, COUNT(*) AS count
+FROM `bigquery-public-data.stackoverflow.users`
+GROUP BY year
+ORDER BY COUNT(year) DESC
+LIMIT 15;
+
+/* Tendency seems in general to be that each year there are more new users than the one before
+*/
