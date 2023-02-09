@@ -1,0 +1,12 @@
+--1. How many different badges are there?
+SELECT COUNT(DISTINCT(name))
+FROM `bigquery-public-data.stackoverflow.badges`;
+-- There are 6815 badges!
+
+-- 2. What are the easiest badges (most frequent ones) to obtain?
+SELECT name AS badge_name, COUNT(*) AS count
+FROM `bigquery-public-data.stackoverflow.badges` 
+GROUP BY name
+ORDER BY COUNT(*) DESC
+LIMIT 15;
+-- 'Popular Question' is the easiest badge to get!
