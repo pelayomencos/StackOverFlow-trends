@@ -1,0 +1,156 @@
+--1. How many questions are asked each year?
+
+SELECT EXTRACT(YEAR FROM creation_date) AS year, COUNT(*) AS number_of_questions_asked
+FROM `bigquery-public-data.stackoverflow.posts_questions`
+GROUP BY year
+ORDER BY year DESC; 
+
+/* 2013-2017 is the time period where more questions were asked.
+In particular, 2016 was the year with most questions asked. 
+*/
+
+
+--2. What are the most popular topics?
+
+WITH split_tags AS (
+  SELECT id, SPLIT(tags, '|') AS tags_array
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+)
+SELECT tags_array,COUNT(*) AS count
+FROM split_tags, 
+UNNEST(tags_array) AS tags_array
+GROUP BY tags_array
+ORDER BY count DESC
+LIMIT 15;
+
+/* Javascript is the most recurrent topic, followed by Python!
+*/
+
+
+--3. Has the most popular topic shifted throughout the years?
+
+WITH split_tags AS (
+  SELECT id, EXTRACT(YEAR FROM creation_date) AS year, SPLIT(tags, '|') AS tags_array
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+),
+expanded_tags AS (
+  SELECT year,tags_array, COUNT(*) as count
+  FROM split_tags, 
+  UNNEST(tags_array) AS tags_array
+  GROUP BY year, tags_array
+)
+SELECT year, tags_array,count
+FROM (
+  SELECT year,tags_array,count, ROW_NUMBER() OVER (PARTITION BY year ORDER BY count DESC) AS row_num
+  FROM expanded_tags
+)
+WHERE row_num = 1
+ORDER BY year DESC;
+
+/* 
+Fascinating! There are 3 time periods in which one programming language 
+is the most popular topic: between 2008 and 2011 it was c#; between 
+2013 and 2018 it was javascript; and after that it is python.
+*/
+
+
+--4. Evolution in popularity of programming languages (see the graphs!)
+
+--4.1. Evolution of most poular programming languages : c#, javascript, python. 
+WITH split_tags AS (
+  SELECT id, EXTRACT(YEAR FROM creation_date) AS year, split(tags, '|') AS tags_array
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+),
+expanded_tags AS (
+  SELECT year, tags_array, COUNT(*) as count
+  FROM split_tags,
+  UNNEST(tags_array) AS tags_array
+  WHERE tags_array IN ('javascript', 'c#', 'python')
+  GROUP BY year, tags_array
+)
+SELECT year, tags_array, count
+FROM expanded_tags
+ORDER BY year DESC, count DESC;
+
+/* Python was clearly growing until 2021, and nowadays is clearly the most frequent topic.
+   c# was from 2008 to 2012 the most popular topic, from when its popularity slowly but steadily begun to decrease.
+   Javascript had a very quick growth in popularity which reached its peak in 2016, and has since began to decrease.
+*/
+
+--4.2. SQL: mysql, sql-server, postgresql, sqlite, google-bigquery
+WITH split_tags AS (
+  SELECT id,EXTRACT(YEAR FROM creation_date) AS year, split(tags, '|') AS tags_array
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+),
+expanded_tags AS (
+  SELECT year, tags_array, COUNT(*) as count
+  FROM split_tags, UNNEST(tags_array) AS tags_array
+  WHERE tags_array IN ('mysql', 'sql-server', 'postgresql', 'sqlite', 'google-bigquery')
+  GROUP BY year, tags_array
+)
+SELECT year,tags_array,count
+FROM expanded_tags
+ORDER BY year DESC, count DESC;
+
+/* Most questions have concerned MySQL which has clearly been the most popular topic throughout the years.
+  The last few years have however seen a decrease in the questions concerning MySQL and a rise in questions
+  about PostgreSQL – the distance between number of questions of MySQL and other SQL languages has never been 
+  smaller. 
+*/
+
+
+--5. What hour of the day are questions asked?
+
+SELECT EXTRACT(HOUR FROM creation_date) AS hour, COUNT(*) AS number_of_questions
+FROM `bigquery-public-data.stackoverflow.posts_questions`
+GROUP BY hour
+ORDER BY hour;
+
+--Most frequent hours for posting a question = between 14 and 16
+
+
+--6.1. What is the total % of questions which are answered?
+
+WITH total_rows AS (
+  SELECT COUNT(*) AS total_rows
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+),
+rows_with_answer AS (
+  SELECT COUNT(answer_count) AS rows_with_answer
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+  WHERE answer_count != 0
+),
+percentage AS (
+  SELECT (rows_with_answer.rows_with_answer / total_rows.total_rows) * 100 AS percent_with_answer
+  FROM total_rows, rows_with_answer
+)
+SELECT ROUND(percent_with_answer,1) AS Percentage_of_answered_questions
+FROM percentage;
+
+-- 85.6% of questions have obtained an answer
+
+--6.2. Evolution of % of answered questions per year
+
+WITH total_rows AS (
+  SELECT COUNT(*) AS total_rows, EXTRACT(YEAR FROM creation_date) AS year
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+  GROUP BY year
+),
+rows_with_answer AS (
+  SELECT COUNT(answer_count) AS rows_with_answer,EXTRACT(YEAR FROM creation_date) AS year
+  FROM `bigquery-public-data.stackoverflow.posts_questions`
+  WHERE answer_count != 0
+  GROUP BY year
+),
+percentage AS (
+  SELECT (rows_with_answer.rows_with_answer / total_rows.total_rows) * 100 AS percent_with_answer,
+         total_rows.year
+  FROM total_rows
+  JOIN rows_with_answer
+  ON total_rows.year = rows_with_answer.year
+)
+SELECT ROUND(percent_with_answer, 1) AS percentage_of_answered_questions, percentage.YEAR
+FROM percentage
+ORDER BY percentage.YEAR DESC;
+
+-- Take a look at the graph!
