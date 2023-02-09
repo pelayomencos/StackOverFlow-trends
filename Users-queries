@@ -1,0 +1,31 @@
+-- 1. Where in the world are most of the users from? 
+SELECT COUNT(location)
+FROM `bigquery-public-data.stackoverflow.users` 
+WHERE location IS NOT NULL; 
+-- We only have the location for around 20% of the users! 
+
+SELECT location, COUNT(location) AS location_frequency
+FROM `bigquery-public-data.stackoverflow.users` 
+GROUP BY location 
+ORDER BY COUNT(location) DESC
+LIMIT 15;
+
+/* 4 of the 5 most frequent locations are in India. 
+However this data is of no use for us due to:
+1. Missing data (80%)
+2. Unreliable tags (e.g. many tags indicate a region or a city
+[New York] without mentioning the country [USA], which makes it 
+hard to see the actual number of users of a given country) 
+*/
+
+
+--2. When did users join Stack OverFlow?
+SELECT EXTRACT(YEAR FROM creation_date) AS year, COUNT(*) AS new_users
+FROM `bigquery-public-data.stackoverflow.users`
+GROUP BY year 
+ORDER BY year DESC
+LIMIT 15;
+
+/* The general tendency seems to be that each year there 
+are more new users than the year before
+*/
